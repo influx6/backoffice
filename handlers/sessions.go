@@ -12,8 +12,8 @@ import (
 
 // DeferredSessionsFactory returns a function which allows easily create a new copy
 // of a Sessions struct.
-func DeferredSessionsFactory(log sink.Sink, dbr db.DB) func(db.TableIdentity, time.Time) Sessions {
-	return func(us db.TableIdentity, expiry time.Time) Sessions {
+func DeferredSessionsFactory(log sink.Sink, dbr db.DB) func(db.TableIdentity, time.Duration) Sessions {
+	return func(us db.TableIdentity, expiry time.Duration) Sessions {
 		return Sessions{
 			DB:            dbr,
 			Log:           log,
@@ -25,7 +25,7 @@ func DeferredSessionsFactory(log sink.Sink, dbr db.DB) func(db.TableIdentity, ti
 
 // SessionsFactory returns a function which returns a given a new instance of a
 // Sessions.
-func SessionsFactory(log sink.Sink, dbr db.DB, expiry time.Time, session db.TableIdentity) Sessions {
+func SessionsFactory(log sink.Sink, dbr db.DB, expiry time.Duration, session db.TableIdentity) Sessions {
 	return Sessions{
 		DB:            dbr,
 		Log:           log,
@@ -38,7 +38,7 @@ func SessionsFactory(log sink.Sink, dbr db.DB, expiry time.Time, session db.Tabl
 type Sessions struct {
 	DB            db.DB
 	Log           sink.Sink
-	Expiration    time.Time
+	Expiration    time.Duration
 	TableIdentity db.TableIdentity
 }
 
@@ -73,7 +73,7 @@ func (s Sessions) Create(nu *user.User) (*session.Session, error) {
 	}
 
 	// Create new session and store session into db.
-	newSession = *session.New(nu.PublicID, s.Expiration)
+	newSession = *session.New(nu.PublicID, time.Now().Add(s.Expiration))
 
 	if err := s.DB.Save(s.Log, s.TableIdentity, &newSession); err != nil {
 		s.Log.Emit(sinks.Error("Failed to save new session: %+q", err).WithFields(sink.Fields{"user_email": nu.Email, "user_id": nu.PublicID}))
