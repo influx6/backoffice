@@ -10,6 +10,30 @@ import (
 	"github.com/influx6/faux/sink/sinks"
 )
 
+// DeferredSessionsFactory returns a function which allows easily create a new copy
+// of a Sessions struct.
+func DeferredSessionsFactory(log sink.Sink, dbr db.DB) func(db.TableIdentity, time.Time) Sessions {
+	return func(us db.TableIdentity, expiry time.Time) Sessions {
+		return Sessions{
+			DB:            dbr,
+			Log:           log,
+			Expiration:    expiry,
+			TableIdentity: us,
+		}
+	}
+}
+
+// SessionsFactory returns a function which returns a given a new instance of a
+// Sessions.
+func SessionsFactory(log sink.Sink, dbr db.DB, expiry time.Time, session db.TableIdentity) Sessions {
+	return Sessions{
+		DB:            dbr,
+		Log:           log,
+		Expiration:    expiry,
+		TableIdentity: session,
+	}
+}
+
 // Sessions defines a handler which provides session related methods.
 type Sessions struct {
 	DB            db.DB

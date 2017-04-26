@@ -9,6 +9,42 @@ import (
 	"github.com/influx6/faux/sink/sinks"
 )
 
+// DeferredUsersFactory returns a function which allows easily create a new copy
+// of a Users struct.
+func DeferredUsersFactory(log sink.Sink, dbr db.DB) func(db.TableIdentity, db.TableIdentity) Users {
+	return func(ut db.TableIdentity, pt db.TableIdentity) Users {
+		users := Users{
+			DB:            dbr,
+			Log:           log,
+			TableIdentity: ut,
+		}
+
+		if pt != nil {
+			pm := ProfilesFactory(log, dbr, pt)
+			users.Profiles = &pm
+		}
+
+		return users
+	}
+}
+
+// UsersFactory returns a function which returns a given can be used to generate a
+// new Users instance to make request with.
+func UsersFactory(log sink.Sink, dbr db.DB, usersT db.TableIdentity, profilesT db.TableIdentity) Users {
+	users := Users{
+		DB:            dbr,
+		Log:           log,
+		TableIdentity: usersT,
+	}
+
+	if profilesT != nil {
+		pm := ProfilesFactory(log, dbr, profilesT)
+		users.Profiles = &pm
+	}
+
+	return users
+}
+
 // Users exposes a central handle for which requests are served to all requests.
 type Users struct {
 	DB            db.DB

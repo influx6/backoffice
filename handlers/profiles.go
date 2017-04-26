@@ -10,6 +10,28 @@ import (
 	"github.com/influx6/faux/sink/sinks"
 )
 
+// DeferredProfilesFactory returns a function which allows easily create a new copy
+// of a Profiles struct.
+func DeferredProfilesFactory(log sink.Sink, dbr db.DB) func(db.TableIdentity) Profiles {
+	return func(us db.TableIdentity) Profiles {
+		return Profiles{
+			DB:            dbr,
+			Log:           log,
+			TableIdentity: us,
+		}
+	}
+}
+
+// ProfilesFactory returns a function which returns a given a new instance of a
+// Profile.
+func ProfilesFactory(log sink.Sink, dbr db.DB, profile db.TableIdentity) Profiles {
+	return Profiles{
+		DB:            dbr,
+		Log:           log,
+		TableIdentity: profile,
+	}
+}
+
 // Profiles defines a handler which provides profile related methods.
 type Profiles struct {
 	DB            db.DB

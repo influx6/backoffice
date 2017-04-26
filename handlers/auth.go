@@ -2,12 +2,38 @@ package handlers
 
 import (
 	"errors"
+	"time"
 
+	"github.com/influx6/backoffice/db"
 	"github.com/influx6/backoffice/models/session"
 	"github.com/influx6/backoffice/utils"
 	"github.com/influx6/faux/sink"
 	"github.com/influx6/faux/sink/sinks"
 )
+
+// DefferedBearerAuth returns a new function which can be used to generate a new copy of the
+// BearerAuth.
+func DefferedBearerAuth(log sink.Sink, dbr db.DB) func(db.TableIdentity, db.TableIdentity, db.TableIdentity, time.Time) BearerAuth {
+	return func(ut db.TableIdentity, pt db.TableIdentity, st db.TableIdentity, expiry time.Time) BearerAuth {
+		users := UsersFactory(log, dbr, ut, pt)
+		sessions := SessionsFactory(log, dbr, expiry, st)
+		return BearerAuth{
+			Users:    users,
+			Sessions: sessions,
+		}
+	}
+}
+
+// BearerAuthFactory returns a function which returns a given can be used to generate a
+// new Users instance to make request with.
+func BearerAuthFactory(log sink.Sink, dbr db.DB, ut db.TableIdentity, pt, st db.TableIdentity, expiry time.Time) BearerAuth {
+	users := UsersFactory(log, dbr, ut, pt)
+	sessions := SessionsFactory(log, dbr, expiry, st)
+	return BearerAuth{
+		Users:    users,
+		Sessions: sessions,
+	}
+}
 
 // BearerAuth defines an handler which provides authorization handling for
 // a request, needing user authentication.
