@@ -1,12 +1,12 @@
 package sqltables
 
 import (
+	"github.com/influx6/backoffice/db"
 	"github.com/influx6/backoffice/db/sql/tables"
-	"github.com/influx6/faux/naming"
 )
 
 // BasicTables defines the migration table for creating the profiles's table.
-func BasicTables(names naming.FeedNamer) []tables.TableMigration {
+func BasicTables(names db.Namer) []tables.TableMigration {
 	var ts []tables.TableMigration
 
 	ts = append(ts, tables.TableMigration{

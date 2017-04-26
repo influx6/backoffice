@@ -1,7 +1,6 @@
 package db
 
 import (
-	"github.com/influx6/faux/naming"
 	"github.com/influx6/faux/sink"
 )
 
@@ -66,13 +65,21 @@ func (t TableName) Table() string {
 
 //=============================================================================================================================================
 
+// Namer exposes a method which can be used to generate specific names based on a giving
+// critieras.
+type Namer interface {
+	New(string) string
+}
+
+//=============================================================================================================================================
+
 // TableNamer defines holds a underline naming mechanism to deliver new TableName instance.
 type TableNamer struct {
-	namer naming.FeedNamer
+	namer Namer
 }
 
 // NewTableNamer returns a new TableNamer instance.
-func NewTableNamer(nm naming.FeedNamer) *TableNamer {
+func NewTableNamer(nm Namer) *TableNamer {
 	return &TableNamer{
 		namer: nm,
 	}

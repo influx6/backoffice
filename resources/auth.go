@@ -56,8 +56,8 @@ func (u Auth) CheckAuthorization(w http.ResponseWriter, r *http.Request, params 
 // within it's data.
 type OAuth struct {
 	Auth    *auth.Auth
-	Options []oauth2.AuthCodeOption
 	Log     sink.Sink
+	Options []oauth2.AuthCodeOption
 }
 
 // Redirect attempts to redirect incoming request with the OAuth URL from the supplied OAuth
