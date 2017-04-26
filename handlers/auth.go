@@ -13,8 +13,8 @@ import (
 
 // DefferedBearerAuth returns a new function which can be used to generate a new copy of the
 // BearerAuth.
-func DefferedBearerAuth(log sink.Sink, dbr db.DB) func(db.TableIdentity, db.TableIdentity, db.TableIdentity, time.Time) BearerAuth {
-	return func(ut db.TableIdentity, pt db.TableIdentity, st db.TableIdentity, expiry time.Time) BearerAuth {
+func DefferedBearerAuth(log sink.Sink, dbr db.DB) func(db.TableIdentity, db.TableIdentity, db.TableIdentity, time.Duration) BearerAuth {
+	return func(ut db.TableIdentity, pt db.TableIdentity, st db.TableIdentity, expiry time.Duration) BearerAuth {
 		users := UsersFactory(log, dbr, ut, pt)
 		sessions := SessionsFactory(log, dbr, expiry, st)
 		return BearerAuth{
@@ -26,7 +26,7 @@ func DefferedBearerAuth(log sink.Sink, dbr db.DB) func(db.TableIdentity, db.Tabl
 
 // BearerAuthFactory returns a function which returns a given can be used to generate a
 // new Users instance to make request with.
-func BearerAuthFactory(log sink.Sink, dbr db.DB, ut db.TableIdentity, pt, st db.TableIdentity, expiry time.Time) BearerAuth {
+func BearerAuthFactory(log sink.Sink, dbr db.DB, ut db.TableIdentity, pt, st db.TableIdentity, expiry time.Duration) BearerAuth {
 	users := UsersFactory(log, dbr, ut, pt)
 	sessions := SessionsFactory(log, dbr, expiry, st)
 	return BearerAuth{
