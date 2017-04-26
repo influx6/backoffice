@@ -16,6 +16,7 @@ import (
 // a request, needing user authentication.
 type Auth struct {
 	handlers.BearerAuth
+	Next func(w http.ResponseWriter, r *http.Request, params map[string]string)
 }
 
 // CheckAuthorization handles receiving requests to verify user authorization.
@@ -28,7 +29,7 @@ Header:
 
 		WHERE: <TOKEN> = <USERID>:<SESSIONTOKEN>
 */
-func (u Auth) CheckAuthorization(w http.ResponseWriter, r *http.Request, params map[string]string) error {
+func (u Auth) CheckAuthorization(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	defer u.Log.Emit(sinks.Info("Authenticate Authorization").WithFields(sink.Fields{
 		"params": params,
 		"remote": r.RemoteAddr,
@@ -44,10 +45,14 @@ func (u Auth) CheckAuthorization(w http.ResponseWriter, r *http.Request, params 
 		}))
 
 		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Invalid Auth: Failed to validate authorization", err), http.StatusInternalServerError)
-		return err
+		return
 	}
 
-	return nil
+	if u.Next == nil {
+		return
+	}
+
+	return u.Next(w, r, params)
 }
 
 //==================================================================================================================================================================

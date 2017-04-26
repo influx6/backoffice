@@ -1,5 +1,15 @@
 package resources
 
+import (
+	"errors"
+	"net/http"
+
+	"github.com/gorilla/context"
+	"github.com/gorilla/sessions"
+	"github.com/influx6/faux/sink"
+	"github.com/influx6/faux/sink/sinks"
+)
+
 // contains specific constant names for usage in pkg.
 const (
 	ResponsePerPage = "responsePerPage"
