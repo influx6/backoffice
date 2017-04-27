@@ -39,7 +39,7 @@ type Migration interface {
 // db structure.
 type DB interface {
 	Save(t TableIdentity, f TableFields) error
-	Count(t TableIdentity, index string) (int, error)
+	Count(t TableIdentity) (int, error)
 	Update(t TableIdentity, f TableFields, index string) error
 	Delete(t TableIdentity, index string, value interface{}) error
 	Get(t TableIdentity, c TableConsumer, index string, value interface{}) error
