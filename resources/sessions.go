@@ -127,8 +127,8 @@ func (s Sessions) GetAll(w http.ResponseWriter, r *http.Request, params map[stri
 		"path":   r.URL.Path,
 	}).Trace("Sessions.Create").End())
 
-	responsePerPage, _ := strconv.Atoi(params[ResponsePerPage])
-	page, _ := strconv.Atoi(params[Page])
+	responsePerPage, _ := strconv.Atoi(params[ResponsePerPageName])
+	page, _ := strconv.Atoi(params[PerPageName])
 
 	nus, err := s.Sessions.GetAll(page, responsePerPage)
 	if err != nil {

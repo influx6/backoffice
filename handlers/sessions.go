@@ -86,10 +86,10 @@ func (s Sessions) Create(nu *user.User) (*session.Session, error) {
 // SessionRecords defines a struct which returns the total fields and page details
 // used in retrieving the records.
 type SessionRecords struct {
-	Total         int               `json:"total"`
-	Page          int               `json:"page"`
-	ResponserPage int               `json:"responserPerPage"`
-	Records       []session.Session `json:"records"`
+	Total           int               `json:"total"`
+	Page            int               `json:"page"`
+	ResponsePerPage int               `json:"responsePerPage"`
+	Records         []session.Session `json:"records"`
 }
 
 // GetAll handles receiving requests to retrieve all user from the database.
@@ -125,10 +125,10 @@ func (s Sessions) GetAll(page, responsePerPage int) (SessionRecords, error) {
 	}
 
 	return SessionRecords{
-		Page:          page,
-		Total:         realTotalRecords,
-		Records:       sessionRecords,
-		ResponserPage: responsePerPage,
+		Page:            page,
+		Total:           realTotalRecords,
+		Records:         sessionRecords,
+		ResponsePerPage: responsePerPage,
 	}, nil
 }
 

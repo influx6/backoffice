@@ -204,11 +204,11 @@ func (sq *SQL) Update(identity db.TableIdentity, table db.TableFields, index str
 }
 
 // GetAllPerPage retrieves the giving data from the specific db with the specific index and value.
-func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy string, page int, responserPerPage int) ([]map[string]interface{}, int, error) {
+func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy string, page int, responsePerPage int) ([]map[string]interface{}, int, error) {
 	defer sq.l.Emit(sinks.Info("Retrieve all records from DB").With("table", table.Table()).WithFields(sink.Fields{
-		"order":            order,
-		"page":             page,
-		"responserPerPage": responserPerPage,
+		"order":           order,
+		"page":            page,
+		"responsePerPage": responsePerPage,
 	}).Trace("db.GetAll").End())
 
 	if err := sq.migrate(); err != nil {
@@ -222,7 +222,7 @@ func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy strin
 
 	defer db.Close()
 
-	if page <= 0 && responserPerPage <= 0 {
+	if page <= 0 && responsePerPage <= 0 {
 		records, err := sq.GetAll(table, order, orderBy)
 		return records, len(records), err
 	}
@@ -244,17 +244,25 @@ func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy strin
 
 	var totalWanted, indexToStart int
 
-	if page < 0 && responserPerPage > 0 {
-		totalWanted = responserPerPage
+	if page <= 1 && responsePerPage > 0 {
+		totalWanted = responsePerPage
 		indexToStart = 0
 	} else {
-		totalWanted = responserPerPage * page
+		totalWanted = responsePerPage * page
 		indexToStart = totalWanted / 2
 
 		if page > 1 {
 			indexToStart++
 		}
 	}
+
+	sq.l.Emit(sinks.Info("DB:Query:GetAllPerPage").WithFields(sink.Fields{
+		"starting_index":       indexToStart,
+		"total_records_wanted": totalWanted,
+		"order":                order,
+		"page":                 page,
+		"responsePerPage":      responsePerPage,
+	}))
 
 	// If we are passed the total, just return nil records and total without error.
 	if indexToStart > totalRecords {

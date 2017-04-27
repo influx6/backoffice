@@ -216,8 +216,8 @@ func (u Profiles) GetAll(w http.ResponseWriter, r *http.Request, params map[stri
 		"path":   r.URL.Path,
 	}).Trace("Profiles.GetAll").End())
 
-	responsePerPage, _ := strconv.Atoi(params[ResponsePerPage])
-	page, _ := strconv.Atoi(params[Page])
+	responsePerPage, _ := strconv.Atoi(params[ResponsePerPageName])
+	page, _ := strconv.Atoi(params[PerPageName])
 
 	nus, err := u.Profiles.GetAll(page, responsePerPage)
 	if err != nil {

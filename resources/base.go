@@ -12,8 +12,8 @@ import (
 
 // contains specific constant names for usage in pkg.
 const (
-	ResponsePerPage = "responsePerPage"
-	Page            = "page"
+	ResponsePerPageName = "total"
+	PerPageName         = "page"
 )
 
 // Guarded defines a struct which exposes a session secured request life cycle where a request made will be guarded

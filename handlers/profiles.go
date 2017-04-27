@@ -98,10 +98,10 @@ func (p Profiles) Create(nu *user.User, np *profile.NewProfile) (*profile.Profil
 // ProfileRecords defines a struct which returns the total fields and page details
 // used in retrieving the records.
 type ProfileRecords struct {
-	Total         int               `json:"total"`
-	Page          int               `json:"page"`
-	ResponserPage int               `json:"responserPerPage"`
-	Records       []profile.Profile `json:"records"`
+	Total           int               `json:"total"`
+	Page            int               `json:"page"`
+	ResponsePerPage int               `json:"responsePerPage"`
+	Records         []profile.Profile `json:"records"`
 }
 
 // GetAll handles receiving requests to retrieve all profile from the database.
@@ -137,10 +137,10 @@ func (p Profiles) GetAll(page, responsePerPage int) (ProfileRecords, error) {
 	}
 
 	return ProfileRecords{
-		Page:          page,
-		Total:         realTotalRecords,
-		Records:       profileRecords,
-		ResponserPage: responsePerPage,
+		Page:            page,
+		Total:           realTotalRecords,
+		Records:         profileRecords,
+		ResponsePerPage: responsePerPage,
 	}, nil
 }
 

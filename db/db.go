@@ -44,7 +44,7 @@ type DB interface {
 	Delete(t TableIdentity, index string, value interface{}) error
 	Get(t TableIdentity, c TableConsumer, index string, value interface{}) error
 	GetAll(t TableIdentity, order string, orderBy string) ([]map[string]interface{}, error)
-	GetAllPerPage(t TableIdentity, order string, orderBy string, page int, responserPage int) ([]map[string]interface{}, int, error)
+	GetAllPerPage(t TableIdentity, order string, orderBy string, page int, responsePage int) ([]map[string]interface{}, int, error)
 }
 
 //=============================================================================================================================================

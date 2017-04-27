@@ -128,10 +128,10 @@ func (u Users) GetByEmail(email string) (*user.User, error) {
 // UserRecords defines a struct which returns the total fields and page details
 // used in retrieving the records.
 type UserRecords struct {
-	Total         int         `json:"total"`
-	Page          int         `json:"page"`
-	ResponserPage int         `json:"responserPerPage"`
-	Records       []user.User `json:"records"`
+	Total           int         `json:"total"`
+	Page            int         `json:"page"`
+	ResponsePerPage int         `json:"responsePerPage"`
+	Records         []user.User `json:"records"`
 }
 
 // GetAll handles receiving requests to retrieve all user from the database.
@@ -168,10 +168,10 @@ func (u Users) GetAll(page, responsePerPage int) (UserRecords, error) {
 	}
 
 	return UserRecords{
-		Page:          page,
-		Total:         realTotalRecords,
-		ResponserPage: responsePerPage,
-		Records:       userRecords,
+		Page:            page,
+		Total:           realTotalRecords,
+		ResponsePerPage: responsePerPage,
+		Records:         userRecords,
 	}, nil
 }
 
