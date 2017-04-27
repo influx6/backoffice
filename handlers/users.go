@@ -86,10 +86,10 @@ func (u Users) Get(id string) (*user.User, error) {
 		return nil, err
 	}
 
-	var err error
-
 	// Get user profile.
 	if u.Profiles != nil {
+		var err error
+
 		nu.Profile, err = u.Profiles.GetByUser(nu.PublicID)
 		if err != nil {
 			u.Log.Emit(sinks.Error(err).WithFields(sink.Fields{"public_id": id}))
@@ -233,7 +233,6 @@ func (u Users) UpdatePassword(nw user.UpdateUserPassword) error {
 	// 	u.Log.Emit(sinks.Error(err).WithFields(sink.Fields{
 	//		"user_id":   nw.PublicID,
 	// 	}))
-	// 	http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to connect to database", err), http.StatusInternalServerError)
 	// 	return
 	// }
 

@@ -15,15 +15,6 @@ const (
 	timeFormat     = "Mon Jan 2 15:04:05 -0700 MST 2006"
 )
 
-// User is a type defining the given user related fields for a given.
-type User struct {
-	Email     string           `json:"email"`
-	PublicID  string           `json:"public_id"`
-	PrivateID string           `json:"private_id,omitempty"`
-	Hash      string           `json:"hash,omitempty"`
-	Profile   *profile.Profile `json:"profile,omitempty"`
-}
-
 // UpdateUserPassword defines the set of data sent when updating a users password.
 type UpdateUserPassword struct {
 	PublicID        string `json:"public_id"`
@@ -58,6 +49,15 @@ func (u UpdateUser) Table() string {
 type NewUser struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+// User is a type defining the given user related fields for a given.
+type User struct {
+	Email     string           `json:"email"`
+	PublicID  string           `json:"public_id"`
+	PrivateID string           `json:"private_id,omitempty"`
+	Hash      string           `json:"hash,omitempty"`
+	Profile   *profile.Profile `json:"profile,omitempty"`
 }
 
 // New returns a new User instance based on the provided data.

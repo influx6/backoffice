@@ -68,7 +68,7 @@ func (u Profiles) GetForUser(w http.ResponseWriter, r *http.Request, params map[
 			"params": params,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to read `user_id` in params", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusBadRequest, "Failed to read `user_id` in params", err)
 		return
 	}
 
@@ -79,7 +79,7 @@ func (u Profiles) GetForUser(w http.ResponseWriter, r *http.Request, params map[
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to retrieve user's profile", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to retrieve user's profile", err)
 		return
 	}
 
@@ -91,7 +91,7 @@ func (u Profiles) GetForUser(w http.ResponseWriter, r *http.Request, params map[
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to return new user data", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to return new user data", err)
 		return
 	}
 }
@@ -143,7 +143,7 @@ func (u Profiles) Get(w http.ResponseWriter, r *http.Request, params map[string]
 			"params": params,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to read body", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to read body", err)
 		return
 	}
 
@@ -154,7 +154,7 @@ func (u Profiles) Get(w http.ResponseWriter, r *http.Request, params map[string]
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to retrieve user profile", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to retrieve user profile", err)
 		return
 	}
 
@@ -166,7 +166,7 @@ func (u Profiles) Get(w http.ResponseWriter, r *http.Request, params map[string]
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to return new user data", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to return new user data", err)
 		return
 	}
 }
@@ -226,7 +226,7 @@ func (u Profiles) GetAll(w http.ResponseWriter, r *http.Request, params map[stri
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to retrieve users", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to retrieve users", err)
 		return
 	}
 
@@ -238,7 +238,7 @@ func (u Profiles) GetAll(w http.ResponseWriter, r *http.Request, params map[stri
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to return new user data", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to return new user data", err)
 		return
 	}
 }
@@ -301,7 +301,7 @@ func (u Profiles) Create(w http.ResponseWriter, r *http.Request, params map[stri
 			"params": params,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to read body", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to read body", err)
 		return
 	}
 
@@ -313,7 +313,7 @@ func (u Profiles) Create(w http.ResponseWriter, r *http.Request, params map[stri
 			"params": params,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to get user for profile", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to get user for profile", err)
 		return
 	}
 
@@ -324,7 +324,7 @@ func (u Profiles) Create(w http.ResponseWriter, r *http.Request, params map[stri
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to save new user", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to save new user", err)
 		return
 	}
 
@@ -336,7 +336,7 @@ func (u Profiles) Create(w http.ResponseWriter, r *http.Request, params map[stri
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to return new user data", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to return new user data", err)
 		return
 	}
 }
@@ -389,7 +389,7 @@ func (u Profiles) Update(w http.ResponseWriter, r *http.Request, params map[stri
 			"params": params,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to read body", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to read body", err)
 		return
 	}
 
@@ -404,7 +404,7 @@ func (u Profiles) Update(w http.ResponseWriter, r *http.Request, params map[stri
 			"params": params,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to read body", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to read body", err)
 		return
 	}
 
@@ -415,7 +415,7 @@ func (u Profiles) Update(w http.ResponseWriter, r *http.Request, params map[stri
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to connect to database", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to connect to database", err)
 		return
 	}
 
@@ -426,7 +426,7 @@ func (u Profiles) Update(w http.ResponseWriter, r *http.Request, params map[stri
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to connect to database", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to connect to database", err)
 		return
 	}
 
@@ -474,7 +474,7 @@ func (u Profiles) Delete(w http.ResponseWriter, r *http.Request, params map[stri
 			"params": params,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to read param", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to read param", err)
 		return
 	}
 
@@ -484,7 +484,7 @@ func (u Profiles) Delete(w http.ResponseWriter, r *http.Request, params map[stri
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to delete user", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to delete user", err)
 		return
 	}
 

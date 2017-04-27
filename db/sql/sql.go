@@ -335,8 +335,8 @@ func (sq *SQL) Get(log sink.Sink, table db.TableIdentity, consumer db.TableConsu
 	query := fmt.Sprintf(selectItemTemplate, table.Table(), index)
 	log.Emit(sinks.Info("DB:Query").With("query", query))
 
-	rows, err := db.Queryx(query, indexValue)
-	if err != nil {
+	row := db.QueryRowx(query, indexValue)
+	if err := row.Err(); err != nil {
 		log.Emit(sinks.Error("DB:Query: %+q", err).WithFields(sink.Fields{
 			"err":   err,
 			"query": query,
@@ -345,39 +345,19 @@ func (sq *SQL) Get(log sink.Sink, table db.TableIdentity, consumer db.TableConsu
 		return err
 	}
 
-	defer rows.Close()
+	mo := make(map[string]interface{})
 
-	if err := rows.Err(); err != nil {
+	if err := row.MapScan(mo); err != nil {
 		log.Emit(sinks.Error("DB:Query: %+q", err).WithFields(sink.Fields{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
 		}))
+
 		return err
 	}
 
-	var found bool
-
-	for rows.Next() {
-		mo := make(map[string]interface{})
-
-		if err := rows.MapScan(mo); err != nil {
-			log.Emit(sinks.Error("DB:Query: %+q", err).WithFields(sink.Fields{
-				"err":   err,
-				"query": query,
-				"table": table.Table(),
-			}))
-			return err
-		}
-
-		consumer.WithFields(mo)
-		found = true
-		break
-	}
-
-	if !found {
-		return errors.New("No Record found")
-	}
+	consumer.WithFields(mo)
 
 	return nil
 }

@@ -3,6 +3,7 @@ package resources
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -58,7 +59,8 @@ func (u Users) GetLimited(w http.ResponseWriter, r *http.Request, params map[str
 			"params": params,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to read body", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to read body", err)
+		return
 	}
 
 	nu, err := u.Users.Get(publicID)
@@ -68,10 +70,11 @@ func (u Users) GetLimited(w http.ResponseWriter, r *http.Request, params map[str
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to retrieve user", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to retrieve user", err)
+		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	fmt.Printf("Expected Users: %+q -> %+q\n", nu, err)
 
 	if err := json.NewEncoder(w).Encode(nu.SafeFields()); err != nil {
 		u.Log.Emit(sinks.Error(err).WithFields(sink.Fields{
@@ -79,7 +82,7 @@ func (u Users) GetLimited(w http.ResponseWriter, r *http.Request, params map[str
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to return new user data", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to return new user data", err)
 		return
 	}
 }
@@ -124,7 +127,8 @@ func (u Users) Get(w http.ResponseWriter, r *http.Request, params map[string]str
 			"params": params,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to read body", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to read body", err)
+		return
 	}
 
 	nu, err := u.Users.Get(publicID)
@@ -134,7 +138,8 @@ func (u Users) Get(w http.ResponseWriter, r *http.Request, params map[string]str
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to retrieve user", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to retrieve user", err)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -145,7 +150,7 @@ func (u Users) Get(w http.ResponseWriter, r *http.Request, params map[string]str
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to return new user data", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to return new user data", err)
 		return
 	}
 }
@@ -196,7 +201,8 @@ func (u Users) GetAll(w http.ResponseWriter, r *http.Request, params map[string]
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to retrieve users", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to retrieve users", err)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -207,7 +213,7 @@ func (u Users) GetAll(w http.ResponseWriter, r *http.Request, params map[string]
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to return new user data", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to return new user data", err)
 		return
 	}
 }
@@ -257,7 +263,7 @@ func (u Users) Create(w http.ResponseWriter, r *http.Request, params map[string]
 			"params": params,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to read body", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to read body", err)
 		return
 	}
 
@@ -268,7 +274,7 @@ func (u Users) Create(w http.ResponseWriter, r *http.Request, params map[string]
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to save new user", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to save new user", err)
 		return
 	}
 
@@ -280,7 +286,7 @@ func (u Users) Create(w http.ResponseWriter, r *http.Request, params map[string]
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to return new user data", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to return new user data", err)
 		return
 	}
 }
@@ -324,7 +330,8 @@ func (u Users) UpdatePassword(w http.ResponseWriter, r *http.Request, params map
 			"params": params,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to read body", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to read body", err)
+		return
 	}
 
 	var nw user.UpdateUserPassword
@@ -338,7 +345,7 @@ func (u Users) UpdatePassword(w http.ResponseWriter, r *http.Request, params map
 			"params": params,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to read body", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to read body", err)
 		return
 	}
 
@@ -349,7 +356,7 @@ func (u Users) UpdatePassword(w http.ResponseWriter, r *http.Request, params map
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to connect to database", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to connect to database", err)
 		return
 	}
 
@@ -360,7 +367,7 @@ func (u Users) UpdatePassword(w http.ResponseWriter, r *http.Request, params map
 			"params": params,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to update user password: %+q", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to update user password: %+q", err)
 		return
 	}
 
@@ -405,7 +412,8 @@ func (u Users) Update(w http.ResponseWriter, r *http.Request, params map[string]
 			"params": params,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to read body", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to read body", err)
+		return
 	}
 
 	var nw user.UpdateUser
@@ -419,7 +427,7 @@ func (u Users) Update(w http.ResponseWriter, r *http.Request, params map[string]
 			"params": params,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to read body", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to read body", err)
 		return
 	}
 
@@ -430,7 +438,7 @@ func (u Users) Update(w http.ResponseWriter, r *http.Request, params map[string]
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to connect to database", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to connect to database", err)
 		return
 	}
 
@@ -441,7 +449,7 @@ func (u Users) Update(w http.ResponseWriter, r *http.Request, params map[string]
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to connect to database", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to connect to database", err)
 		return
 	}
 
@@ -484,7 +492,7 @@ func (u Users) Delete(w http.ResponseWriter, r *http.Request, params map[string]
 			"user_id": params["user_id"],
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to read param", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to read param", err)
 		return
 	}
 
@@ -495,7 +503,7 @@ func (u Users) Delete(w http.ResponseWriter, r *http.Request, params map[string]
 			"params":  params,
 			"user_id": params["user_id"],
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to delete user", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to delete user", err)
 		return
 	}
 

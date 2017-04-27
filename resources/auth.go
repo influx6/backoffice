@@ -44,7 +44,7 @@ func (u Auth) CheckAuthorization(w http.ResponseWriter, r *http.Request, params 
 			"params": params,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Invalid Auth: Failed to validate authorization", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Invalid Auth: Failed to validate authorization", err)
 		return
 	}
 
@@ -52,7 +52,7 @@ func (u Auth) CheckAuthorization(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	return u.Next(w, r, params)
+	u.Next(w, r, params)
 }
 
 //==================================================================================================================================================================

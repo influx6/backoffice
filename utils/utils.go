@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 )
 
@@ -14,6 +15,11 @@ func ErrorMessage(status int, header string, err error) string {
 		"title": %+q,
 		"message": %+q,
 	}`, status, header, err)
+}
+
+// WriteErrorMessage writes the giving error message to the provided writer.
+func WriteErrorMessage(w http.ResponseWriter, status int, header string, err error) {
+	http.Error(w, ErrorMessage(status, header, err), status)
 }
 
 // ParseAuthorization returns the scheme and token of the Authorization string

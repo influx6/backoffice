@@ -61,7 +61,8 @@ func (s Sessions) Get(w http.ResponseWriter, r *http.Request, params map[string]
 			"user_id": params["user_id"],
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to read body", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to read body", err)
+		return
 	}
 
 	nu, err := s.Sessions.Get(userID)
@@ -72,7 +73,8 @@ func (s Sessions) Get(w http.ResponseWriter, r *http.Request, params map[string]
 			"params":  params,
 			"user_id": params["user_id"],
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to retrieve user session", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to retrieve user session", err)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -84,7 +86,7 @@ func (s Sessions) Get(w http.ResponseWriter, r *http.Request, params map[string]
 			"params":  params,
 			"user_id": params["user_id"],
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to return new user data", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to return new user data", err)
 		return
 	}
 }
@@ -135,7 +137,8 @@ func (s Sessions) GetAll(w http.ResponseWriter, r *http.Request, params map[stri
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to retrieve sessions", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to retrieve sessions", err)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -146,7 +149,7 @@ func (s Sessions) GetAll(w http.ResponseWriter, r *http.Request, params map[stri
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to return new user data", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to return new user data", err)
 		return
 	}
 }
@@ -196,7 +199,7 @@ func (s Sessions) Login(w http.ResponseWriter, r *http.Request, params map[strin
 			"params": params,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to read body", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to read body", err)
 		return
 	}
 
@@ -209,7 +212,7 @@ func (s Sessions) Login(w http.ResponseWriter, r *http.Request, params map[strin
 			"user_email": nw.Email,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to find user with email", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to find user with email", err)
 		return
 	}
 
@@ -221,7 +224,7 @@ func (s Sessions) Login(w http.ResponseWriter, r *http.Request, params map[strin
 			"user_email": nw.Email,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Invalid Credentials: Failed to authenticate user", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusUnauthorized, "Invalid Credentials: Failed to authenticate user", err)
 		return
 	}
 
@@ -232,7 +235,7 @@ func (s Sessions) Login(w http.ResponseWriter, r *http.Request, params map[strin
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to save new user", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to save new user", err)
 		return
 	}
 
@@ -244,12 +247,12 @@ func (s Sessions) Login(w http.ResponseWriter, r *http.Request, params map[strin
 			"remote": r.RemoteAddr,
 			"params": params,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to return new user data", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to return new user data", err)
 		return
 	}
 }
 
-// Logout handles receiving requests to end a user session from the server.
+// LogoutWithJSON handles receiving requests to end a user session from the server.
 /* Service API
 	HTTP Method: DELETE
 	Request:
@@ -271,7 +274,7 @@ func (s Sessions) Login(w http.ResponseWriter, r *http.Request, params map[strin
 			"message":"",
 		}
 */
-func (s Sessions) Logout(w http.ResponseWriter, r *http.Request, params map[string]string) {
+func (s Sessions) LogoutWithJSON(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	defer s.Log.Emit(sinks.Info("Delete Existing Session").WithFields(sink.Fields{
 		"remote": r.RemoteAddr,
 		"params": params,
@@ -290,7 +293,7 @@ func (s Sessions) Logout(w http.ResponseWriter, r *http.Request, params map[stri
 			"user_id": nw.UserID,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to read body", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusBadRequest, "Failed to read body", err)
 		return
 	}
 
@@ -302,7 +305,8 @@ func (s Sessions) Logout(w http.ResponseWriter, r *http.Request, params map[stri
 			"params":  params,
 			"user_id": nw.UserID,
 		}))
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to retrieve user's session", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusUnauthorized, "Failed to retrieve user's session", err)
+		return
 	}
 
 	if !nus.ValidateToken(nw.Token) {
@@ -314,7 +318,7 @@ func (s Sessions) Logout(w http.ResponseWriter, r *http.Request, params map[stri
 			"user_id": nw.UserID,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to validate user's session", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusUnauthorized, "Failed to validate user's session", err)
 		return
 	}
 
@@ -326,7 +330,129 @@ func (s Sessions) Logout(w http.ResponseWriter, r *http.Request, params map[stri
 			"user_id": nw.UserID,
 		}))
 
-		http.Error(w, utils.ErrorMessage(http.StatusInternalServerError, "Failed to retrieve user", err), http.StatusInternalServerError)
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to retrieve user", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// Logout handles receiving requests to end a user session from the server.
+/* Service API
+	HTTP Method: DELETE
+	Header:
+			{
+				"Authorization":"Bearer <TOKEN>",
+			}
+	Request:
+		Path: /sessions/logout/
+		Body: None
+
+   Response: (Success, 201)
+		Body: None
+
+   Response: (Failure, 500)
+	Body:
+		`{
+			"status":"",
+			"title":"",
+			"message":"",
+		}
+*/
+func (s Sessions) Logout(w http.ResponseWriter, r *http.Request, params map[string]string) {
+	defer s.Log.Emit(sinks.Info("Delete Existing Session").WithFields(sink.Fields{
+		"remote": r.RemoteAddr,
+		"params": params,
+		"path":   r.URL.Path,
+	}).Trace("Sessions.Logout").End())
+
+	authorization := r.Header.Get("Authorization")
+	if authorization == "" {
+		err := errors.New("Invalid Request: No session currenntly")
+		s.Log.Emit(sinks.Error(err).WithFields(sink.Fields{
+			"path":   r.URL.Path,
+			"remote": r.RemoteAddr,
+			"params": params,
+		}))
+
+		utils.WriteErrorMessage(w, http.StatusBadRequest, "Failed to authorization header", err)
+		return
+	}
+
+	// Retrieve authorization header.
+	authType, token, err := utils.ParseAuthorization(authorization)
+	if err != nil {
+		s.Log.Emit(sinks.Error(err).WithFields(sink.Fields{
+			"authorization": authorization,
+			"path":          r.URL.Path,
+			"remote":        r.RemoteAddr,
+			"params":        params,
+		}))
+
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed decode authorization", err)
+		return
+	}
+
+	if authType != "Bearer" {
+		err := errors.New("Only `Bearer` Authorization supported")
+		s.Log.Emit(sinks.Error(err).WithFields(sink.Fields{
+			"authorization": authorization,
+			"path":          r.URL.Path,
+			"remote":        r.RemoteAddr,
+			"params":        params,
+		}))
+
+		utils.WriteErrorMessage(w, http.StatusUnauthorized, "Failed decode authorization", err)
+		return
+	}
+
+	// Retrieve Authorization UserID and Token.
+	sessionUserID, sessionToken, err := session.ParseToken(token)
+	if err != nil {
+		s.Log.Emit(sinks.Error(err).WithFields(sink.Fields{
+			"authorization": authorization,
+			"path":          r.URL.Path,
+			"remote":        r.RemoteAddr,
+			"params":        params,
+		}))
+
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed decode authorization", err)
+		return
+	}
+
+	nus, err := s.Sessions.Get(sessionUserID)
+	if err != nil {
+		s.Log.Emit(sinks.Error(err).WithFields(sink.Fields{
+			"authorization": authorization,
+			"path":          r.URL.Path,
+			"remote":        r.RemoteAddr,
+			"params":        params,
+		}))
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to retrieve user's session", err)
+		return
+	}
+
+	if !nus.ValidateToken(sessionToken) {
+		err := errors.New("Invalid User session tokens")
+		s.Log.Emit(sinks.Error(err).WithFields(sink.Fields{
+			"path":   r.URL.Path,
+			"remote": r.RemoteAddr,
+			"params": params,
+		}))
+
+		utils.WriteErrorMessage(w, http.StatusUnauthorized, "Failed to validate user's session", err)
+		return
+	}
+
+	if err := s.Sessions.Delete(nus.PublicID); err != nil {
+		s.Log.Emit(sinks.Error(err).WithFields(sink.Fields{
+			"authorization": authorization,
+			"path":          r.URL.Path,
+			"remote":        r.RemoteAddr,
+			"params":        params,
+		}))
+
+		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to retrieve user", err)
 		return
 	}
 

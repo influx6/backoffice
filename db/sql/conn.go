@@ -23,7 +23,15 @@ type Conn struct {
 // New returns a new instance of a sqlx.DB connected to the db with the provided
 // credentials pulled from the host environment.
 func (s Conn) New() (*sqlx.DB, error) {
-	addr := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", s.User, s.Password, s.Addr, s.Port, s.Addr)
+	defer s.Log.Emit(sinks.Info("Connect to SQL").WithFields(sink.Fields{
+		"ip":     s.Addr,
+		"port":   s.Port,
+		"db":     s.Database,
+		"user":   s.User,
+		"driver": s.Driver,
+	}).Trace("sql.Conn.New").End())
+
+	addr := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", s.User, s.Password, s.Addr, s.Port, s.Database)
 
 	db, err := sqlx.Connect(s.Driver, addr)
 	if err != nil {
