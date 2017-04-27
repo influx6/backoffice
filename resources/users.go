@@ -3,7 +3,6 @@ package resources
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -73,8 +72,6 @@ func (u Users) GetLimited(w http.ResponseWriter, r *http.Request, params map[str
 		utils.WriteErrorMessage(w, http.StatusInternalServerError, "Failed to retrieve user", err)
 		return
 	}
-
-	fmt.Printf("Expected Users: %+q -> %+q\n", nu, err)
 
 	if err := json.NewEncoder(w).Encode(nu.SafeFields()); err != nil {
 		u.Log.Emit(sinks.Error(err).WithFields(sink.Fields{

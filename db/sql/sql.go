@@ -241,8 +241,8 @@ func (sq *SQL) GetAllPerPage(log sink.Sink, table db.TableIdentity, order string
 		return nil, totalRecords, nil
 	}
 
-	query := fmt.Sprint(selectAllTemplate, table, orderBy, order, indexToStart, totalWanted)
-	log.Emit(sinks.Info("DB:Query").With("query", query))
+	query := fmt.Sprintf(selectLimitedTemplate, table.Table(), orderBy, order, indexToStart, totalWanted)
+	log.Emit(sinks.Info("DB:Query:GetAllPerPage").With("query", query))
 
 	if err := db.Select(&fields, query); err != nil {
 		log.Emit(sinks.Error(err).WithFields(sink.Fields{
@@ -283,8 +283,8 @@ func (sq *SQL) GetAll(log sink.Sink, table db.TableIdentity, order string, order
 
 	var fields []map[string]interface{}
 
-	query := fmt.Sprint(selectAllTemplate, table, orderBy, order)
-	log.Emit(sinks.Info("DB:Query").With("query", query))
+	query := fmt.Sprintf(selectAllTemplate, table.Table(), orderBy, order)
+	log.Emit(sinks.Info("DB:Query:GetAll").With("query", query))
 
 	rows, err := db.Queryx(query)
 	if err != nil {
@@ -379,12 +379,12 @@ func (sq *SQL) Count(log sink.Sink, table db.TableIdentity, index string) (int, 
 
 	defer db.Close()
 
-	var records []int
+	var records []interface{}
 
 	query := fmt.Sprintf(countTemplate, index, table.Table())
 	log.Emit(sinks.Info("DB:Query").With("query", query))
 
-	if err := db.Get(&records, query); err != nil {
+	if err := db.Select(&records, query); err != nil {
 		log.Emit(sinks.Error("DB:Query").WithFields(sink.Fields{
 			"err":   err,
 			"query": query,
