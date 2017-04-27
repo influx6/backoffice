@@ -289,7 +289,7 @@ func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy strin
 			return nil, -1, err
 		}
 
-		fields = append(fields, mo)
+		fields = append(fields, naturalizeMap(mo))
 	}
 
 	return fields, totalRecords, nil
@@ -345,7 +345,7 @@ func (sq *SQL) GetAll(table db.TableIdentity, order string, orderBy string) ([]m
 			return nil, err
 		}
 
-		fields = append(fields, mo)
+		fields = append(fields, naturalizeMap(mo))
 	}
 
 	return fields, nil
@@ -403,6 +403,11 @@ func (sq *SQL) Get(table db.TableIdentity, consumer db.TableConsumer, index stri
 
 		return err
 	}
+
+	sq.l.Emit(sinks.Debug("Consumer:Get:Fields").WithFields(sink.Fields{
+		"table":    table.Table(),
+		"response": mo,
+	}))
 
 	if err := consumer.WithFields(naturalizeMap(mo)); err != nil {
 		sq.l.Emit(sinks.Error("Consumer:WithFields: %+q", err).WithFields(sink.Fields{
@@ -470,6 +475,11 @@ func (sq *SQL) Delete(table db.TableIdentity, index string, indexValue interface
 
 	defer db.Close()
 
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
 	indexValueString, err := printLiteral(indexValue)
 	if err != nil {
 		sq.l.Emit(sinks.Error("DB:Query: %+q", err).WithFields(sink.Fields{
@@ -491,7 +501,7 @@ func (sq *SQL) Delete(table db.TableIdentity, index string, indexValue interface
 		return err
 	}
 
-	return nil
+	return tx.Commit()
 }
 
 // FieldMarkers returns a (?,...,>) string which represents
@@ -589,14 +599,14 @@ func printLiteral(item interface{}) (string, error) {
 		return strconv.Itoa(rl.(int)), nil
 	case float32, float64:
 		return strconv.FormatFloat(rl.(float64), 'f', 2, 64), nil
+	case string:
+		return strconv.Quote(rl), nil
 	case []byte:
 		return strconv.Quote(string(rl)), nil
 	case time.Time:
 		return strconv.Quote(rl.String()), nil
 	case byte:
 		return strconv.QuoteRune(rune(rl)), nil
-	case string:
-		return strconv.Quote(rl), nil
 	default:
 		return "", errors.New("Not basic type")
 	}
