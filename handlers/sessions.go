@@ -54,7 +54,7 @@ func (s Sessions) Create(nu *user.User) (*session.Session, error) {
 	var newSession session.Session
 
 	// Attempt to retrieve session from db if we still have an outstanding non-expired session.
-	if err := s.DB.Get(s.Log, s.TableIdentity, &newSession, session.UniqueIndex, nu.PublicID); err == nil {
+	if err := s.DB.Get(s.TableIdentity, &newSession, session.UniqueIndex, nu.PublicID); err == nil {
 
 		// We have an existing session and the time of expiring is still counting, simly return
 		if !newSession.Expires.IsZero() && currentTime.Before(newSession.Expires) {
@@ -65,7 +65,7 @@ func (s Sessions) Create(nu *user.User) (*session.Session, error) {
 		if newSession.Expires.IsZero() || currentTime.After(newSession.Expires) {
 
 			// Delete this sessions
-			if err := s.DB.Delete(s.Log, s.TableIdentity, session.UniqueIndex, nu.PublicID); err != nil {
+			if err := s.DB.Delete(s.TableIdentity, session.UniqueIndex, nu.PublicID); err != nil {
 				s.Log.Emit(sinks.Error("Failed to delete old session: %+q", err).WithFields(sink.Fields{"user_email": nu.Email, "user_id": nu.PublicID}))
 				return nil, err
 			}
@@ -75,7 +75,7 @@ func (s Sessions) Create(nu *user.User) (*session.Session, error) {
 	// Create new session and store session into db.
 	newSession = *session.New(nu.PublicID, time.Now().Add(s.Expiration))
 
-	if err := s.DB.Save(s.Log, s.TableIdentity, &newSession); err != nil {
+	if err := s.DB.Save(s.TableIdentity, &newSession); err != nil {
 		s.Log.Emit(sinks.Error("Failed to save new session: %+q", err).WithFields(sink.Fields{"user_email": nu.Email, "user_id": nu.PublicID}))
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func (s Sessions) GetAll(page, responsePerPage int) (SessionRecords, error) {
 		"responsePerPage": responsePerPage,
 	}).Trace("handlers.Users.Create").End())
 
-	records, realTotalRecords, err := s.DB.GetAllPerPage(s.Log, s.TableIdentity, "asc", "public_id", page, responsePerPage)
+	records, realTotalRecords, err := s.DB.GetAllPerPage(s.TableIdentity, "asc", "public_id", page, responsePerPage)
 	if err != nil {
 		s.Log.Emit(sinks.Error(err).WithFields(sink.Fields{
 			"page":            page,
@@ -141,7 +141,7 @@ func (s Sessions) Get(userID string) (*session.Session, error) {
 	var existingSession session.Session
 
 	// Attempt to retrieve session from db if we still have an outstanding non-expired session.
-	if err := s.DB.Get(s.Log, s.TableIdentity, &existingSession, session.UniqueIndex, userID); err != nil {
+	if err := s.DB.Get(s.TableIdentity, &existingSession, session.UniqueIndex, userID); err != nil {
 		s.Log.Emit(sinks.Error("Failed to retrieve session from db: %+q", err).WithFields(sink.Fields{"user_id": userID}))
 		return nil, err
 	}
@@ -156,7 +156,7 @@ func (s Sessions) Delete(userID string) error {
 	}).Trace("Sessions.Delete").End())
 
 	// Delete this sessions
-	if err := s.DB.Delete(s.Log, s.TableIdentity, session.UniqueIndex, userID); err != nil {
+	if err := s.DB.Delete(s.TableIdentity, session.UniqueIndex, userID); err != nil {
 		s.Log.Emit(sinks.Error("Failed to delete user session from db: %+q", err).WithFields(sink.Fields{"user_id": userID}))
 		return err
 	}

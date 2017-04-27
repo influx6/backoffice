@@ -1,9 +1,5 @@
 package db
 
-import (
-	"github.com/influx6/faux/sink"
-)
-
 // contains templates of sql statement for use in operations.
 const (
 	countTemplate         = "SELECT %s FROM %s"
@@ -42,13 +38,13 @@ type Migration interface {
 // DB defines a type which allows CRUD operations provided by a underline
 // db structure.
 type DB interface {
-	Save(s sink.Sink, t TableIdentity, f TableFields) error
-	Count(s sink.Sink, t TableIdentity, index string) (int, error)
-	Update(s sink.Sink, t TableIdentity, f TableFields, index string) error
-	Delete(s sink.Sink, t TableIdentity, index string, value interface{}) error
-	Get(s sink.Sink, t TableIdentity, c TableConsumer, index string, value interface{}) error
-	GetAll(s sink.Sink, t TableIdentity, order string, orderBy string) ([]map[string]interface{}, error)
-	GetAllPerPage(s sink.Sink, t TableIdentity, order string, orderBy string, page int, responserPage int) ([]map[string]interface{}, int, error)
+	Save(t TableIdentity, f TableFields) error
+	Count(t TableIdentity, index string) (int, error)
+	Update(t TableIdentity, f TableFields, index string) error
+	Delete(t TableIdentity, index string, value interface{}) error
+	Get(t TableIdentity, c TableConsumer, index string, value interface{}) error
+	GetAll(t TableIdentity, order string, orderBy string) ([]map[string]interface{}, error)
+	GetAllPerPage(t TableIdentity, order string, orderBy string, page int, responserPage int) ([]map[string]interface{}, int, error)
 }
 
 //=============================================================================================================================================

@@ -57,7 +57,7 @@ type Users struct {
 func (u Users) Delete(id string) error {
 	defer u.Log.Emit(sinks.Info("Get Existing User").With("user_id", id).Trace("handlers.Users.Create").End())
 
-	if err := u.DB.Delete(u.Log, u.TableIdentity, "public_id", id); err != nil {
+	if err := u.DB.Delete(u.TableIdentity, "public_id", id); err != nil {
 		u.Log.Emit(sinks.Error(err).WithFields(sink.Fields{"public_id": id}))
 		return err
 	}
@@ -81,7 +81,7 @@ func (u Users) Get(id string) (*user.User, error) {
 
 	var nu user.User
 
-	if err := u.DB.Get(u.Log, u.TableIdentity, &nu, "public_id", id); err != nil {
+	if err := u.DB.Get(u.TableIdentity, &nu, "public_id", id); err != nil {
 		u.Log.Emit(sinks.Error(err).WithFields(sink.Fields{"public_id": id}))
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (u Users) GetByEmail(email string) (*user.User, error) {
 
 	var nu user.User
 
-	if err := u.DB.Get(u.Log, u.TableIdentity, &nu, "email", email); err != nil {
+	if err := u.DB.Get(u.TableIdentity, &nu, "email", email); err != nil {
 		u.Log.Emit(sinks.Error(err).WithFields(sink.Fields{"user_email": email}))
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (u Users) GetAll(page, responsePerPage int) (UserRecords, error) {
 		"responsePerPage": responsePerPage,
 	}).Trace("handlers.Users.Create").End())
 
-	records, realTotalRecords, err := u.DB.GetAllPerPage(u.Log, u.TableIdentity, "asc", "public_id", page, responsePerPage)
+	records, realTotalRecords, err := u.DB.GetAllPerPage(u.TableIdentity, "asc", "public_id", page, responsePerPage)
 	if err != nil {
 		u.Log.Emit(sinks.Error(err).WithFields(sink.Fields{
 			"page":            page,
@@ -185,7 +185,7 @@ func (u Users) Create(nw user.NewUser) (*user.User, error) {
 		return nil, err
 	}
 
-	if err := u.DB.Save(u.Log, u.TableIdentity, newUser); err != nil {
+	if err := u.DB.Save(u.TableIdentity, newUser); err != nil {
 		u.Log.Emit(sinks.Error(err).WithFields(sink.Fields{"email": nw.Email}))
 		return nil, err
 	}
@@ -238,7 +238,7 @@ func (u Users) UpdatePassword(nw user.UpdateUserPassword) error {
 
 	var dbUser user.User
 
-	if err := u.DB.Get(u.Log, u.TableIdentity, &dbUser, "public_id", nw.PublicID); err != nil {
+	if err := u.DB.Get(u.TableIdentity, &dbUser, "public_id", nw.PublicID); err != nil {
 		u.Log.Emit(sinks.Error(err).WithFields(sink.Fields{
 			"user_id": nw.PublicID,
 		}))
@@ -254,7 +254,7 @@ func (u Users) UpdatePassword(nw user.UpdateUserPassword) error {
 		return err
 	}
 
-	if err := u.DB.Update(u.Log, u.TableIdentity, &dbUser, "public_id"); err != nil {
+	if err := u.DB.Update(u.TableIdentity, &dbUser, "public_id"); err != nil {
 		u.Log.Emit(sinks.Error(err).WithFields(sink.Fields{
 			"user_id": nw.PublicID,
 		}))
@@ -279,7 +279,7 @@ func (u Users) Update(nw user.UpdateUser) error {
 		return err
 	}
 
-	if err := u.DB.Update(u.Log, u.TableIdentity, nw, "public_id"); err != nil {
+	if err := u.DB.Update(u.TableIdentity, nw, "public_id"); err != nil {
 		u.Log.Emit(sinks.Error(err).WithFields(sink.Fields{
 			"user_id": nw.PublicID,
 			"email":   nw.Email,

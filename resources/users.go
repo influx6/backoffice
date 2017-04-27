@@ -156,7 +156,8 @@ func (u Users) Get(w http.ResponseWriter, r *http.Request, params map[string]str
 /* Service API
 	HTTP Method: GET
 	Request:
-		Path: /admin/users/
+		Path: /users
+		Path: /users/:responser_per_page/:page
 		Body: None
 
    Response: (Success, 200)

@@ -56,7 +56,7 @@ func (p Profiles) Create(nu *user.User, np *profile.NewProfile) (*profile.Profil
 	profileSeen := true
 
 	// Attempt to retrieve profile from db if we still have an outstanding non-expired profile.
-	if err := p.DB.Get(p.Log, p.TableIdentity, &newProfile, profile.UniqueIndex, nu.PublicID); err != nil {
+	if err := p.DB.Get(p.TableIdentity, &newProfile, profile.UniqueIndex, nu.PublicID); err != nil {
 		p.Log.Emit(sinks.Error("Failed to retrieve profile: %+q", err).WithFields(sink.Fields{"user_email": nu.Email, "user_id": nu.PublicID}))
 		profileSeen = false
 	}
@@ -80,7 +80,7 @@ func (p Profiles) Create(nu *user.User, np *profile.NewProfile) (*profile.Profil
 		newProfile.LastName = np.LastName
 	}
 
-	if err := p.DB.Save(p.Log, p.TableIdentity, &newProfile); err != nil {
+	if err := p.DB.Save(p.TableIdentity, &newProfile); err != nil {
 		p.Log.Emit(sinks.Error("Failed to save profile: %+q", err).WithFields(sink.Fields{"user_email": nu.Email, "user_id": nu.PublicID}))
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func (p Profiles) GetAll(page, responsePerPage int) (ProfileRecords, error) {
 		"responsePerPage": responsePerPage,
 	}).Trace("handlers.Users.Create").End())
 
-	records, realTotalRecords, err := p.DB.GetAllPerPage(p.Log, p.TableIdentity, "asc", "public_id", page, responsePerPage)
+	records, realTotalRecords, err := p.DB.GetAllPerPage(p.TableIdentity, "asc", "public_id", page, responsePerPage)
 	if err != nil {
 		p.Log.Emit(sinks.Error(err).WithFields(sink.Fields{
 			"page":            page,
@@ -153,7 +153,7 @@ func (p Profiles) Get(profileID string) (*profile.Profile, error) {
 	var existingProfile profile.Profile
 
 	// Attempt to retrieve profile from db if we still have an outstanding non-expired profile.
-	if err := p.DB.Get(p.Log, p.TableIdentity, &existingProfile, "public_id", profileID); err != nil {
+	if err := p.DB.Get(p.TableIdentity, &existingProfile, "public_id", profileID); err != nil {
 		p.Log.Emit(sinks.Error("Failed to retrieve profile from db: %+q", err).WithFields(sink.Fields{"profile_id": profileID}))
 		return nil, err
 	}
@@ -170,7 +170,7 @@ func (p Profiles) GetByUser(userID string) (*profile.Profile, error) {
 	var existingProfile profile.Profile
 
 	// Attempt to retrieve profile from db if we still have an outstanding non-expired profile.
-	if err := p.DB.Get(p.Log, p.TableIdentity, &existingProfile, profile.UniqueIndex, userID); err != nil {
+	if err := p.DB.Get(p.TableIdentity, &existingProfile, profile.UniqueIndex, userID); err != nil {
 		p.Log.Emit(sinks.Error("Failed to retrieve profile from db: %+q", err).WithFields(sink.Fields{"user_id": userID}))
 		return nil, err
 	}
@@ -185,7 +185,7 @@ func (p Profiles) DeleteByUser(userID string) error {
 	}).Trace("Profiles.DeleteByUser").End())
 
 	// Delete this profile
-	if err := p.DB.Delete(p.Log, p.TableIdentity, profile.UniqueIndex, userID); err != nil {
+	if err := p.DB.Delete(p.TableIdentity, profile.UniqueIndex, userID); err != nil {
 		p.Log.Emit(sinks.Error("Failed to delete profile profile from db: %+q", err).WithFields(sink.Fields{"user_id": userID}))
 		return err
 	}
@@ -200,7 +200,7 @@ func (p Profiles) Delete(profileID string) error {
 	}).Trace("Profiles.Delete").End())
 
 	// Delete this profile
-	if err := p.DB.Delete(p.Log, p.TableIdentity, "public_id", profileID); err != nil {
+	if err := p.DB.Delete(p.TableIdentity, "public_id", profileID); err != nil {
 		p.Log.Emit(sinks.Error("Failed to delete profile from db: %+q", err).WithFields(sink.Fields{"profile_id": profileID}))
 		return err
 	}
@@ -221,7 +221,7 @@ func (p Profiles) Update(nw profile.UpdateProfile) error {
 		return err
 	}
 
-	if err := p.DB.Update(p.Log, p.TableIdentity, nw, "public_id"); err != nil {
+	if err := p.DB.Update(p.TableIdentity, nw, "public_id"); err != nil {
 		p.Log.Emit(sinks.Error(err).WithFields(sink.Fields{
 			"profile_id": nw.PublicID,
 		}))

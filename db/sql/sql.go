@@ -3,6 +3,7 @@ package sql
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,13 +16,13 @@ import (
 
 // contains templates of sql statement for use in operations.
 const (
-	countTemplate         = "SELECT %s FROM %s"
+	countTemplate         = "SELECT count(*) FROM %s"
 	selectAllTemplate     = "SELECT * FROM %s ORDER BY %s %s"
-	selectLimitedTemplate = "SELECT * FROM %s ORDER BY %s %s LIMIT %d %d"
-	selectItemTemplate    = "SELECT * FROM %s WHERE %s=?"
+	selectLimitedTemplate = "SELECT * FROM %s ORDER BY %s %s LIMIT %d OFFSET %d"
+	selectItemTemplate    = "SELECT * FROM %s WHERE %s=%s"
 	insertTemplate        = "INSERT INTO %s %s VALUES %s"
 	updateTemplate        = "UPDATE %s SET %s WHERE %s=%s"
-	deleteTemplate        = "DELETE FROM %s WHERE %s=?"
+	deleteTemplate        = "DELETE FROM %s WHERE %s=%s"
 )
 
 // DB defines an interface which exposes a method to return a new
@@ -85,8 +86,8 @@ func (sq *SQL) migrate() error {
 
 // Save takes the giving table name with the giving fields and attempts to save this giving
 // data appropriately into the giving db.
-func (sq *SQL) Save(log sink.Sink, identity db.TableIdentity, table db.TableFields) error {
-	defer log.Emit(sinks.Info("Save to DB").With("table", identity.Table()).Trace("db.Save").End())
+func (sq *SQL) Save(identity db.TableIdentity, table db.TableFields) error {
+	defer sq.l.Emit(sinks.Info("Save to DB").With("table", identity.Table()).Trace("db.Save").End())
 
 	if err := sq.migrate(); err != nil {
 		return err
@@ -105,20 +106,20 @@ func (sq *SQL) Save(log sink.Sink, identity db.TableIdentity, table db.TableFiel
 	}
 
 	fields := table.Fields()
-	fieldNames := FieldNames(fields)
-	values := FieldValues(fieldNames, fields)
+	fieldNames := fieldNames(fields)
+	values := fieldValues(fieldNames, fields)
 
 	fieldNames = append(fieldNames, "created_at")
 	fieldNames = append(fieldNames, "updated_at")
 
-	values = append(values, time.Now())
-	values = append(values, time.Now())
+	values = append(values, time.Now().UTC())
+	values = append(values, time.Now().UTC())
 
-	query := fmt.Sprintf(insertTemplate, identity.Table(), FieldNameMarkers(fieldNames), FieldMarkers(len(fieldNames)))
-	log.Emit(sinks.Info("DB:Query").With("query", query))
+	query := fmt.Sprintf(insertTemplate, identity.Table(), fieldNameMarkers(fieldNames), fieldMarkers(len(fieldNames)))
+	sq.l.Emit(sinks.Info("DB:Query").With("query", query))
 
 	if _, err := db.Exec(query, values...); err != nil {
-		log.Emit(sinks.Error(err).WithFields(sink.Fields{
+		sq.l.Emit(sinks.Error(err).WithFields(sink.Fields{
 			"err":   err,
 			"query": query,
 			"table": identity.Table(),
@@ -133,8 +134,8 @@ func (sq *SQL) Save(log sink.Sink, identity db.TableIdentity, table db.TableFiel
 // data appropriately into the giving db.
 // index - defines the string which should identify the key to be retrieved from the fields to target the
 // data to be updated in the db.
-func (sq *SQL) Update(log sink.Sink, identity db.TableIdentity, table db.TableFields, index string) error {
-	defer log.Emit(sinks.Info("Update to DB").With("table", identity.Table()).Trace("db.Update").End())
+func (sq *SQL) Update(identity db.TableIdentity, table db.TableFields, index string) error {
+	defer sq.l.Emit(sinks.Info("Update to DB").With("table", identity.Table()).Trace("db.Update").End())
 
 	if err := sq.migrate(); err != nil {
 		return err
@@ -153,24 +154,45 @@ func (sq *SQL) Update(log sink.Sink, identity db.TableIdentity, table db.TableFi
 	}
 
 	tableFields := table.Fields()
-	tableFields["updated_at"] = time.Now()
+	tableFields["updated_at"] = time.Now().UTC()
 
 	// Given index was not found, return error.
 	indexValue, ok := tableFields[index]
 	if !ok {
-		return errors.New("Index key not found in fields")
+		err := fmt.Errorf("Index key %q not found in fields", index)
+		sq.l.Emit(sinks.Error(err).WithFields(sink.Fields{
+			"err":   err,
+			"table": identity.Table(),
+		}))
+		return err
+	}
+
+	indexValueString, err := printLiteral(indexValue)
+	if err != nil {
+		sq.l.Emit(sinks.Error(err).WithFields(sink.Fields{
+			"err":   err,
+			"table": identity.Table(),
+		}))
+		return err
 	}
 
 	// Delete given index from fieldNames
 	delete(tableFields, index)
 
-	fieldNames := FieldNamesFromMap(tableFields)
+	sets, err := setValues(tableFields)
+	if err != nil {
+		sq.l.Emit(sinks.Error(err).WithFields(sink.Fields{
+			"err":   err,
+			"table": identity.Table(),
+		}))
+		return err
+	}
 
-	query := fmt.Sprintf(updateTemplate, identity.Table(), FieldMarkers(len(fieldNames)), index, indexValue)
-	log.Emit(sinks.Info("DB:Query").With("query", query))
+	query := fmt.Sprintf(updateTemplate, identity.Table(), sets, index, indexValueString)
+	sq.l.Emit(sinks.Info("DB:Query").With("query", query))
 
-	if _, err := db.Exec(query, FieldValues(fieldNames, tableFields)...); err != nil {
-		log.Emit(sinks.Error(err).WithFields(sink.Fields{
+	if _, err := db.Exec(query); err != nil {
+		sq.l.Emit(sinks.Error(err).WithFields(sink.Fields{
 			"err":   err,
 			"query": query,
 			"table": identity.Table(),
@@ -182,33 +204,33 @@ func (sq *SQL) Update(log sink.Sink, identity db.TableIdentity, table db.TableFi
 }
 
 // GetAllPerPage retrieves the giving data from the specific db with the specific index and value.
-func (sq *SQL) GetAllPerPage(log sink.Sink, table db.TableIdentity, order string, orderBy string, page int, responserPerPage int) ([]map[string]interface{}, int, error) {
-	defer log.Emit(sinks.Info("Retrieve all records from DB").With("table", table.Table()).WithFields(sink.Fields{
+func (sq *SQL) GetAllPerPage(table db.TableIdentity, order string, orderBy string, page int, responserPerPage int) ([]map[string]interface{}, int, error) {
+	defer sq.l.Emit(sinks.Info("Retrieve all records from DB").With("table", table.Table()).WithFields(sink.Fields{
 		"order":            order,
 		"page":             page,
 		"responserPerPage": responserPerPage,
 	}).Trace("db.GetAll").End())
 
 	if err := sq.migrate(); err != nil {
-		return nil, 0, err
+		return nil, -1, err
 	}
 
 	db, err := sq.d.New()
 	if err != nil {
-		return nil, 0, err
+		return nil, -1, err
 	}
 
 	defer db.Close()
 
-	if page < 0 && responserPerPage < 0 {
-		records, err := sq.GetAll(log, table, order, orderBy)
+	if page <= 0 && responserPerPage <= 0 {
+		records, err := sq.GetAll(table, order, orderBy)
 		return records, len(records), err
 	}
 
 	// Get total number of records.
-	totalRecords, err := sq.Count(log, table, "public_id")
+	totalRecords, err := sq.Count(table)
 	if err != nil {
-		return nil, 0, err
+		return nil, -1, err
 	}
 
 	switch strings.ToLower(order) {
@@ -219,8 +241,6 @@ func (sq *SQL) GetAllPerPage(log sink.Sink, table db.TableIdentity, order string
 	default:
 		order = "ASC"
 	}
-
-	var fields []map[string]interface{}
 
 	var totalWanted, indexToStart int
 
@@ -241,25 +261,43 @@ func (sq *SQL) GetAllPerPage(log sink.Sink, table db.TableIdentity, order string
 		return nil, totalRecords, nil
 	}
 
-	query := fmt.Sprintf(selectLimitedTemplate, table.Table(), orderBy, order, indexToStart, totalWanted)
-	log.Emit(sinks.Info("DB:Query:GetAllPerPage").With("query", query))
+	query := fmt.Sprintf(selectLimitedTemplate, table.Table(), orderBy, order, totalWanted, indexToStart)
+	sq.l.Emit(sinks.Info("DB:Query:GetAllPerPage").With("query", query))
 
-	if err := db.Select(&fields, query); err != nil {
-		log.Emit(sinks.Error(err).WithFields(sink.Fields{
+	rows, err := db.Queryx(query)
+	if err != nil {
+		sq.l.Emit(sinks.Error(err).WithFields(sink.Fields{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
 		}))
+		return nil, -1, err
+	}
 
-		return nil, totalRecords, err
+	var fields []map[string]interface{}
+
+	for rows.Next() {
+		mo := make(map[string]interface{})
+
+		if err := rows.MapScan(mo); err != nil {
+			sq.l.Emit(sinks.Error(err).WithFields(sink.Fields{
+				"err":   err,
+				"query": query,
+				"table": table.Table(),
+			}))
+
+			return nil, -1, err
+		}
+
+		fields = append(fields, mo)
 	}
 
 	return fields, totalRecords, nil
 }
 
 // GetAll retrieves the giving data from the specific db with the specific index and value.
-func (sq *SQL) GetAll(log sink.Sink, table db.TableIdentity, order string, orderBy string) ([]map[string]interface{}, error) {
-	defer log.Emit(sinks.Info("Retrieve all records from DB").With("table", table.Table()).Trace("db.GetAll").End())
+func (sq *SQL) GetAll(table db.TableIdentity, order string, orderBy string) ([]map[string]interface{}, error) {
+	defer sq.l.Emit(sinks.Info("Retrieve all records from DB").With("table", table.Table()).Trace("db.GetAll").End())
 
 	if err := sq.migrate(); err != nil {
 		return nil, err
@@ -284,11 +322,11 @@ func (sq *SQL) GetAll(log sink.Sink, table db.TableIdentity, order string, order
 	var fields []map[string]interface{}
 
 	query := fmt.Sprintf(selectAllTemplate, table.Table(), orderBy, order)
-	log.Emit(sinks.Info("DB:Query:GetAll").With("query", query))
+	sq.l.Emit(sinks.Info("DB:Query:GetAll").With("query", query))
 
 	rows, err := db.Queryx(query)
 	if err != nil {
-		log.Emit(sinks.Error(err).WithFields(sink.Fields{
+		sq.l.Emit(sinks.Error(err).WithFields(sink.Fields{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
@@ -299,7 +337,7 @@ func (sq *SQL) GetAll(log sink.Sink, table db.TableIdentity, order string, order
 	for rows.Next() {
 		mo := make(map[string]interface{})
 		if err := rows.MapScan(mo); err != nil {
-			log.Emit(sinks.Error(err).WithFields(sink.Fields{
+			sq.l.Emit(sinks.Error(err).WithFields(sink.Fields{
 				"err":   err,
 				"query": query,
 				"table": table.Table(),
@@ -314,8 +352,8 @@ func (sq *SQL) GetAll(log sink.Sink, table db.TableIdentity, order string, order
 }
 
 // Get retrieves the giving data from the specific db with the specific index and value.
-func (sq *SQL) Get(log sink.Sink, table db.TableIdentity, consumer db.TableConsumer, index string, indexValue interface{}) error {
-	defer log.Emit(sinks.Info("Get record from DB").WithFields(sink.Fields{
+func (sq *SQL) Get(table db.TableIdentity, consumer db.TableConsumer, index string, indexValue interface{}) error {
+	defer sq.l.Emit(sinks.Info("Get record from DB").WithFields(sink.Fields{
 		"table":      table.Table(),
 		"index":      index,
 		"indexValue": indexValue,
@@ -332,12 +370,21 @@ func (sq *SQL) Get(log sink.Sink, table db.TableIdentity, consumer db.TableConsu
 
 	defer db.Close()
 
-	query := fmt.Sprintf(selectItemTemplate, table.Table(), index)
-	log.Emit(sinks.Info("DB:Query").With("query", query))
+	indexValueString, err := printLiteral(indexValue)
+	if err != nil {
+		sq.l.Emit(sinks.Error("DB:Query: %+q", err).WithFields(sink.Fields{
+			"err":   err,
+			"table": table.Table(),
+		}))
+		return err
+	}
 
-	row := db.QueryRowx(query, indexValue)
+	query := fmt.Sprintf(selectItemTemplate, table.Table(), index, indexValueString)
+	sq.l.Emit(sinks.Info("DB:Query").With("query", query))
+
+	row := db.QueryRowx(query)
 	if err := row.Err(); err != nil {
-		log.Emit(sinks.Error("DB:Query: %+q", err).WithFields(sink.Fields{
+		sq.l.Emit(sinks.Error("DB:Query: %+q", err).WithFields(sink.Fields{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
@@ -348,7 +395,7 @@ func (sq *SQL) Get(log sink.Sink, table db.TableIdentity, consumer db.TableConsu
 	mo := make(map[string]interface{})
 
 	if err := row.MapScan(mo); err != nil {
-		log.Emit(sinks.Error("DB:Query: %+q", err).WithFields(sink.Fields{
+		sq.l.Emit(sinks.Error("DB:Query: %+q", err).WithFields(sink.Fields{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
@@ -357,14 +404,22 @@ func (sq *SQL) Get(log sink.Sink, table db.TableIdentity, consumer db.TableConsu
 		return err
 	}
 
-	consumer.WithFields(mo)
+	if err := consumer.WithFields(naturalizeMap(mo)); err != nil {
+		sq.l.Emit(sinks.Error("Consumer:WithFields: %+q", err).WithFields(sink.Fields{
+			"err":   err,
+			"query": query,
+			"table": table.Table(),
+		}))
+
+		return err
+	}
 
 	return nil
 }
 
 // Count retrieves the total number of records from the specific table from the db.
-func (sq *SQL) Count(log sink.Sink, table db.TableIdentity, index string) (int, error) {
-	defer log.Emit(sinks.Info("Count record from DB").WithFields(sink.Fields{
+func (sq *SQL) Count(table db.TableIdentity) (int, error) {
+	defer sq.l.Emit(sinks.Info("Count record from DB").WithFields(sink.Fields{
 		"table": table.Table(),
 	}).Trace("db.Get").End())
 
@@ -379,13 +434,13 @@ func (sq *SQL) Count(log sink.Sink, table db.TableIdentity, index string) (int, 
 
 	defer db.Close()
 
-	var records []interface{}
+	var records int
 
-	query := fmt.Sprintf(countTemplate, index, table.Table())
-	log.Emit(sinks.Info("DB:Query").With("query", query))
+	query := fmt.Sprintf(countTemplate, table.Table())
+	sq.l.Emit(sinks.Info("DB:Query").With("query", query))
 
-	if err := db.Select(&records, query); err != nil {
-		log.Emit(sinks.Error("DB:Query").WithFields(sink.Fields{
+	if err := db.Get(&records, query); err != nil {
+		sq.l.Emit(sinks.Error("DB:Query").WithFields(sink.Fields{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
@@ -393,12 +448,12 @@ func (sq *SQL) Count(log sink.Sink, table db.TableIdentity, index string) (int, 
 		return 0, err
 	}
 
-	return len(records), nil
+	return records, nil
 }
 
 // Delete removes the giving data from the specific db with the specific index and value.
-func (sq *SQL) Delete(log sink.Sink, table db.TableIdentity, index string, indexValue interface{}) error {
-	defer log.Emit(sinks.Info("Delete record from DB").WithFields(sink.Fields{
+func (sq *SQL) Delete(table db.TableIdentity, index string, indexValue interface{}) error {
+	defer sq.l.Emit(sinks.Info("Delete record from DB").WithFields(sink.Fields{
 		"table":      table.Table(),
 		"index":      index,
 		"indexValue": indexValue,
@@ -415,13 +470,20 @@ func (sq *SQL) Delete(log sink.Sink, table db.TableIdentity, index string, index
 
 	defer db.Close()
 
-	var fields map[string]interface{}
+	indexValueString, err := printLiteral(indexValue)
+	if err != nil {
+		sq.l.Emit(sinks.Error("DB:Query: %+q", err).WithFields(sink.Fields{
+			"err":   err,
+			"table": table.Table(),
+		}))
+		return err
+	}
 
-	query := fmt.Sprintf(deleteTemplate, table.Table(), index)
-	log.Emit(sinks.Info("DB:Query").With("query", query))
+	query := fmt.Sprintf(deleteTemplate, table.Table(), index, indexValueString)
+	sq.l.Emit(sinks.Info("DB:Query").With("query", query))
 
-	if err := db.Get(&fields, query, indexValue); err != nil {
-		log.Emit(sinks.Error(err).WithFields(sink.Fields{
+	if _, err := db.Exec(query); err != nil {
+		sq.l.Emit(sinks.Error(err).WithFields(sink.Fields{
 			"err":   err,
 			"query": query,
 			"table": table.Table(),
@@ -434,7 +496,7 @@ func (sq *SQL) Delete(log sink.Sink, table db.TableIdentity, index string, index
 
 // FieldMarkers returns a (?,...,>) string which represents
 // all filedNames extrated from the provided TableField.
-func FieldMarkers(total int) string {
+func fieldMarkers(total int) string {
 	var markers []string
 
 	for i := 0; i < total; i++ {
@@ -444,15 +506,15 @@ func FieldMarkers(total int) string {
 	return "(" + strings.Join(markers, ",") + ")"
 }
 
-// FieldNameMarkers returns a (fieldName,...,fieldName) string which represents
+// fieldNameMarkers returns a (fieldName,...,fieldName) string which represents
 // all filedNames extrated from the provided TableField.
-func FieldNameMarkers(fields []string) string {
+func fieldNameMarkers(fields []string) string {
 	return "(" + strings.Join(fields, ", ") + ")"
 }
 
-// FieldValues returns a (fieldName,...,fieldName) string which represents
+// fieldValues returns a (fieldName,...,fieldName) string which represents
 // all filedNames extrated from the provided TableField.
-func FieldValues(names []string, fields map[string]interface{}) []interface{} {
+func fieldValues(names []string, fields map[string]interface{}) []interface{} {
 	var vals []interface{}
 
 	for _, name := range names {
@@ -462,9 +524,42 @@ func FieldValues(names []string, fields map[string]interface{}) []interface{} {
 	return vals
 }
 
-// FieldNamesFromMap returns a (fieldName,...,fieldName) string which represents
+func setValues(fields map[string]interface{}) (string, error) {
+	var vals []string
+
+	for name, val := range fields {
+		rv, err := printLiteral(val)
+		if err != nil {
+			return "", err
+		}
+
+		vals = append(vals, fmt.Sprintf("%s=%s", name, rv))
+	}
+
+	return strings.Join(vals, ","), nil
+}
+
+// naturalizeMap returns a new map where all values of []bytes are converted to strings
+func naturalizeMap(fields map[string]interface{}) map[string]interface{} {
+	nz := map[string]interface{}{}
+
+	for key, val := range fields {
+		switch rv := val.(type) {
+		case []byte:
+			nz[key] = string(rv)
+			continue
+		default:
+			nz[key] = val
+			continue
+		}
+	}
+
+	return nz
+}
+
+// fieldNamesFromMap returns a (fieldName,...,fieldName) string which represents
 // all filedNames extrated from the provided TableField.
-func FieldNamesFromMap(fields map[string]interface{}) []string {
+func fieldNamesFromMap(fields map[string]interface{}) []string {
 	var names []string
 
 	for key := range fields {
@@ -474,9 +569,9 @@ func FieldNamesFromMap(fields map[string]interface{}) []string {
 	return names
 }
 
-// FieldNames returns a (fieldName,...,fieldName) string which represents
+// fieldNames returns a (fieldName,...,fieldName) string which represents
 // all filedNames extrated from the provided TableField.
-func FieldNames(fields map[string]interface{}) []string {
+func fieldNames(fields map[string]interface{}) []string {
 	var names []string
 
 	for key := range fields {
@@ -484,4 +579,25 @@ func FieldNames(fields map[string]interface{}) []string {
 	}
 
 	return names
+}
+
+// printLiteral attempts to provide a function to allow us easily convert
+// simple values like int, float, uint to string for use in queries.
+func printLiteral(item interface{}) (string, error) {
+	switch rl := item.(type) {
+	case int, int64, int32:
+		return strconv.Itoa(rl.(int)), nil
+	case float32, float64:
+		return strconv.FormatFloat(rl.(float64), 'f', 2, 64), nil
+	case []byte:
+		return strconv.Quote(string(rl)), nil
+	case time.Time:
+		return strconv.Quote(rl.String()), nil
+	case byte:
+		return strconv.QuoteRune(rune(rl)), nil
+	case string:
+		return strconv.Quote(rl), nil
+	default:
+		return "", errors.New("Not basic type")
+	}
 }
